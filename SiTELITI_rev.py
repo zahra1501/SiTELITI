@@ -1,11 +1,12 @@
 import io
+from html import escape
 import re
 import streamlit as st
 import pandas as pd
 import pdfplumber
 
 
-APP_CACHE_VERSION = "2026-08-18-12"
+APP_CACHE_VERSION = "2026-09-15-03"
 
 
 # ============================================================
@@ -26,179 +27,67 @@ st.set_page_config(
 
 CUSTOM_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
-:root{
-    --siteliti-primary:#1f4e8c;
-    --siteliti-primary-dark:#173c6b;
-    --siteliti-accent:#2f9e6b;
-    --siteliti-danger:#e5484d;
-    --siteliti-warning:#f0a13c;
-    --siteliti-bg-soft:#f4f7fb;
-    --siteliti-border:#e3e8f0;
+:root {
+    --siteliti-primary: #1f4e8c;
+    --siteliti-bg-soft: #f6f8fb;
+    --siteliti-border: #e3e8ef;
 }
-
-html, body, [class*="css"]{
-    font-family:'Plus Jakarta Sans', 'Source Sans Pro', sans-serif;
+/* Sisakan ruang untuk toolbar Streamlit di atas judul aplikasi. */
+.block-container { padding-top: 1.8rem; padding-bottom: 2.5rem; }
+.block-container { padding-top: 4.5rem; padding-bottom: 2.5rem; }
+.siteliti-hero {
+    border-bottom: 1px solid var(--siteliti-border);
+    padding: 0 0 1rem;
+    margin-bottom: 1.2rem;
 }
-
-/* Hilangkan padding atas bawaan agar hero terasa menyatu */
-.block-container{
-    padding-top:1.6rem;
-    padding-bottom:3rem;
+.siteliti-hero h1 {
+    color: var(--siteliti-primary);
+    font-size: 1.85rem;
+    font-weight: 700;
+    line-height: 1.25;
+    line-height: 1.4;
+    margin: 0 0 .35rem;
+    padding: 0;
+    padding: .15rem 0;
+    height: auto;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
-
-/* ---------- Hero header ---------- */
-.siteliti-hero{
-    background:linear-gradient(120deg, var(--siteliti-primary) 0%, var(--siteliti-primary-dark) 100%);
-    border-radius:18px;
-    padding:1.9rem 2.2rem;
-    margin-bottom:1.6rem;
-    box-shadow:0 10px 28px rgba(23,60,107,0.18);
+.siteliti-hero p { color: #526174; font-size: .9rem; margin: 0; }
+.siteliti-hero p {
+    color: #526174; font-size: .9rem; margin: 0;
+    line-height: 1.6; white-space: normal; overflow-wrap: anywhere;
 }
-.siteliti-hero h1{
-    color:#ffffff;
-    font-size:2.1rem;
-    font-weight:800;
-    margin:0 0 0.6rem 0;
-    letter-spacing:0.2px;
+.siteliti-metric {
+    border: 1px solid var(--siteliti-border);
+    border-radius: 8px;
+    padding: .85rem 1rem;
+    height: 100%;
 }
-.siteliti-hero .badge{
-    display:inline-block;
-    background:rgba(255,255,255,0.14);
-    color:#ffffff;
-    padding:0.18rem 0.7rem;
-    border-radius:999px;
-    font-size:0.75rem;
-    font-weight:600;
-    letter-spacing:0.4px;
+.siteliti-metric .value {
+    font-size: 1.65rem; font-weight: 700; line-height: 1.2; margin: 0;
 }
-
-/* ---------- Kartu metrik ---------- */
-.siteliti-metric{
-    background:#ffffff;
-    border:1px solid var(--siteliti-border);
-    border-radius:16px;
-    padding:1.1rem 1.3rem;
-    display:flex;
-    align-items:center;
-    gap:0.9rem;
-    box-shadow:0 2px 10px rgba(23,60,107,0.05);
-    height:100%;
+.siteliti-metric .label { color: #526174; font-size: .85rem; margin: .3rem 0 0; }
+.siteliti-section-title {
+    font-size: 1.1rem; font-weight: 650; margin: 1rem 0 .3rem;
 }
-.siteliti-metric .icon{
-    font-size:1.7rem;
-    width:52px;
-    height:52px;
-    border-radius:14px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    flex-shrink:0;
+.siteliti-section-sub { color: #526174; font-size: .88rem; margin: 0 0 .8rem; }
+section[data-testid="stSidebar"] { border-right: 1px solid var(--siteliti-border); }
+.stButton button, .stDownloadButton button { border-radius: 6px; }
+button[data-baseweb="tab"] { font-weight: 600; }
+div[data-testid="stDataFrame"] { border-radius: 6px; }
+.siteliti-step-card { padding: .5rem 0; }
+.siteliti-step-card .step-num {
+    color: var(--siteliti-primary); font-size: .85rem; font-weight: 700;
+    margin-bottom: .5rem;
 }
-.siteliti-metric .value{
-    font-size:1.9rem;
-    font-weight:800;
-    line-height:1.1;
-    margin:0;
-    color:#1c2733;
-}
-.siteliti-metric .label{
-    font-size:0.86rem;
-    color:#6b7686;
-    margin:0.15rem 0 0 0;
-    font-weight:600;
-}
-
-/* ---------- Section heading ---------- */
-.siteliti-section-title{
-    font-size:1.15rem;
-    font-weight:700;
-    color:#1c2733;
-    margin:0 0 0.2rem 0;
-}
-.siteliti-section-sub{
-    font-size:0.88rem;
-    color:#8792a2;
-    margin:0 0 0.9rem 0;
-}
-
-/* ---------- Sidebar ---------- */
-section[data-testid="stSidebar"]{
-    background:var(--siteliti-bg-soft);
-    border-right:1px solid var(--siteliti-border);
-}
-section[data-testid="stSidebar"] .stButton button{
-    width:100%;
-    border-radius:10px;
-    font-weight:600;
-}
-section[data-testid="stSidebar"] div[data-testid="stFileUploader"]{
-    border-radius:12px;
-}
-
-/* ---------- Tombol umum ---------- */
-.stButton button, .stDownloadButton button{
-    border-radius:10px;
-    font-weight:600;
-}
-.stDownloadButton button{
-    border:1px solid var(--siteliti-primary);
-    color:var(--siteliti-primary);
-}
-
-/* ---------- Tabs ---------- */
-button[data-baseweb="tab"]{
-    font-weight:600;
-    font-size:0.95rem;
-}
-
-/* ---------- Expander & dataframe ---------- */
-div[data-testid="stExpander"]{
-    border-radius:12px;
-    border:1px solid var(--siteliti-border);
-}
-div[data-testid="stDataFrame"]{
-    border-radius:12px;
-    overflow:hidden;
-    border:1px solid var(--siteliti-border);
-}
-
-/* ---------- Landing cards ---------- */
-.siteliti-step-card{
-    background:#ffffff;
-    border:1px solid var(--siteliti-border);
-    border-radius:16px;
-    padding:1.2rem 1.3rem;
-    height:100%;
-    box-shadow:0 2px 10px rgba(23,60,107,0.04);
-}
-.siteliti-step-card .step-num{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    width:30px;
-    height:30px;
-    border-radius:9px;
-    background:var(--siteliti-bg-soft);
-    color:var(--siteliti-primary);
-    font-weight:800;
-    font-size:0.95rem;
-    margin-bottom:0.6rem;
-}
-.siteliti-step-card h4{
-    margin:0 0 0.4rem 0;
-    font-size:1.02rem;
-    color:#1c2733;
-}
-.siteliti-step-card p, .siteliti-step-card li{
-    font-size:0.88rem;
-    color:#5c6675;
-    line-height:1.55;
-}
-.siteliti-step-card ul{
-    margin:0.3rem 0 0 0;
-    padding-left:1.1rem;
+.siteliti-step-card h4 { font-size: 1rem; margin: 0 0 .4rem; padding: 0; }
+.siteliti-step-card p { color: #526174; font-size: .88rem; line-height: 1.6; margin: 0; }
+@media (max-width: 640px) {
+    .block-container { padding-top: 1rem; }
+    .block-container { padding-top: 4.5rem; }
+    .siteliti-hero h1 { font-size: 1.6rem; }
+    .siteliti-metric { padding: .65rem .8rem; }
 }
 </style>
 """
@@ -206,22 +95,13 @@ div[data-testid="stDataFrame"]{
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 
-def render_metric_card(icon, value, label, color="#1f4e8c", bg="#eaf1fb"):
-    """
-    Menampilkan kartu metrik bergaya dashboard dengan ikon,
-    nilai besar, dan label deskriptif.
-    """
-
+def render_metric_card(value, label, color="#1f4e8c"):
+    """Ringkasan sederhana; warna menekankan jumlah temuan."""
     st.markdown(
         f"""
         <div class="siteliti-metric">
-            <div class="icon" style="background:{bg};color:{color};">
-                {icon}
-            </div>
-            <div>
-                <p class="value" style="color:{color};">{value}</p>
-                <p class="label">{label}</p>
-            </div>
+            <p class="value" style="color:{escape(color)};">{escape(str(value))}</p>
+            <p class="label">{escape(label)}</p>
         </div>
         """,
         unsafe_allow_html=True
@@ -235,13 +115,13 @@ def render_section_title(title, subtitle=None):
     """
 
     subtitle_html = (
-        f'<p class="siteliti-section-sub">{subtitle}</p>'
+        f'<p class="siteliti-section-sub">{escape(subtitle)}</p>'
         if subtitle else ""
     )
 
     st.markdown(
         f"""
-        <p class="siteliti-section-title">{title}</p>
+        <p class="siteliti-section-title">{escape(title)}</p>
         {subtitle_html}
         """,
         unsafe_allow_html=True
@@ -368,6 +248,76 @@ def clean_pdf_words(words):
 # ============================================================
 # 2. GROUP WORDS MENJADI BARIS
 # ============================================================
+
+def normalize_pdf_chars(chars):
+    """Tandai superscript dari geometri, tanpa mengubah objek PDF asli.
+
+    Karakter kecil yang terangkat dan berdekatan dengan teks utama
+    diberi penanda ^. Posisi salinannya disejajarkan agar tidak menjadi
+    baris terpisah. Tidak menebak superscript dari isi angka (20222).
+    """
+    chars = [dict(c) for c in chars if c.get("upright") is not False]
+    ordered = sorted(chars, key=lambda c: c["x0"])
+    active = []
+    for char in ordered:
+        size = float(char.get("size", char["bottom"] - char["top"]))
+        if size <= 0 or not str(char.get("text", "")).strip():
+            continue
+        # Hanya karakter di kiri yang cukup dekat secara horizontal.
+        active = [c for c in active if char["x0"] - c["x1"] <= 30]
+        candidates = []
+        for base in active:
+            base_size = float(base.get("size", base["bottom"] - base["top"]))
+            gap = char["x0"] - base["x1"]
+            rise = base["bottom"] - char["bottom"]
+            if (0.45 * base_size <= size <= 0.88 * base_size
+                    and -0.5 <= gap <= max(2, 0.35 * base_size)
+                    and 0.18 * base_size <= rise <= 0.75 * base_size
+                    and char["bottom"] > base["top"]):
+                candidates.append(base)
+        if candidates:
+            base = min(candidates, key=lambda c: abs(char["x0"] - c["x1"]))
+            previous = next((c for c in reversed(active)
+                             if c.get("_superscript_base") is base
+                             and abs(char["x0"] - c["x1"]) <= 2), None)
+            char["text"] = ("" if previous else "^") + char["text"]
+            char["_superscript_base"] = base
+            char["top"], char["bottom"] = base["top"], base["bottom"]
+            char["doctop"] = base.get("doctop", base["top"])
+        active.append(char)
+    for char in chars:
+        char.pop("_superscript_base", None)
+    return chars
+
+
+def extract_pdf_words(page):
+    chars = normalize_pdf_chars(page.chars)
+    return clean_pdf_words(pdfplumber.utils.extract_words(
+        chars, x_tolerance=2, y_tolerance=3, keep_blank_chars=False
+    ))
+
+
+def extract_native_table(table, chars):
+    """Gunakan sel asli untuk pemilihan karakter, lalu pulihkan superscript."""
+    result = []
+    for row in table.rows:
+        values = []
+        for cell in row.cells:
+            if cell is None:
+                values.append(None)
+                continue
+            x0, top, x1, bottom = cell
+            selected = [c for c in chars
+                        if x0 <= (c["x0"] + c["x1"]) / 2 < x1
+                        and top <= (c["top"] + c["bottom"]) / 2 < bottom]
+            words = clean_pdf_words(pdfplumber.utils.extract_words(
+                normalize_pdf_chars(selected), x_tolerance=2, y_tolerance=3
+            ))
+            values.append("\n".join(line["text"]
+                                    for line in group_words_into_lines(words)))
+        result.append(values)
+    return result
+
 
 def group_words_into_lines(
     words,
@@ -731,16 +681,22 @@ UNIT_KEYWORDS = {
     "juta",
 }
 
+# Kata "Sumber"/"Source" juga dapat menjadi header kolom.
+# Hentikan pada label metadata (dengan titik dua atau berdiri sendiri),
+# bukan pada frasa seperti "Sumber Penerangan Jalan Utama".
 TABLE_STOP_LINE_PATTERN = re.compile(
-    r"^\s*("
-    r"Sumber|Source|Catatan|Note|Keterangan|Remarks|"
-    r"Gambar|Figure|Grafik|Graph|"
+    r"^\s*(?:"
+    r"(?:Sumber|Source|Catatan|Note|Keterangan|Remarks)"
+    r"(?:\s*/\s*(?:Sumber|Source|Catatan|Note|Keterangan|Remarks))?"
+    r"\s*(?::|$)"
+    r"|(?:Gambar|Figure|Grafik|Graph|"
     r"BAB\s+\d+|CHAPTER\s+\d+|"
     r"Produk\s+Domestik\s+Regional\s+Bruto\s+Kabupaten|"
-    r"Gross\s+Regional\s+Domestic\s+Product"
-    r")\b",
+    r"Gross\s+Regional\s+Domestic\s+Product)\b"
+    r")",
     re.IGNORECASE
 )
+
 
 NEXT_TABLE_LINE_PATTERN = re.compile(
     r"^\s*(Tabel|Table)\s+\d+(?:\.\d+)*",
@@ -1246,10 +1202,7 @@ def find_table_body_on_page(
         start_index + 1
     )
 
-    search_end = min(
-        start_index + 40,
-        len(lines)
-    )
+    search_end = len(lines)
 
     candidate_lines = lines[
         search_start:search_end
@@ -1355,7 +1308,7 @@ def find_table_body_on_page(
 def find_table_end_index(
     lines,
     start_index,
-    max_lines=80
+    max_lines=None
 ):
     """
     Menentukan batas akhir area tabel agar audit tidak masuk
@@ -1378,7 +1331,7 @@ def find_table_end_index(
     for idx in range(
         start_index,
         min(
-            start_index + max_lines,
+            len(lines) if max_lines is None else start_index + max_lines,
             len(lines)
         )
     ):
@@ -1413,11 +1366,8 @@ def find_table_end_index(
             - previous_bottom
         )
 
-        if (
-            idx > start_index
-            and gap > 45
-        ):
-            break
+        # Jarak besar juga dapat terjadi pada tabel dengan sel multi-baris.
+        # Batas semantik (sumber/catatan/tabel berikutnya) lebih aman.
 
         end_index = idx
         previous_bottom = line.get(
@@ -1645,7 +1595,7 @@ def build_display_title_from_text(
 def build_preview_text_from_lines(
     lines,
     start_index,
-    max_lines=45
+    max_lines=None
 ):
     """
     Preview cepat dari line cache, tanpa crop PDF ulang.
@@ -1654,7 +1604,7 @@ def build_preview_text_from_lines(
     preview_parts = []
 
     for line in lines[
-        start_index:start_index + max_lines
+        start_index:None if max_lines is None else start_index + max_lines
     ]:
 
         text = line.get(
@@ -1764,16 +1714,15 @@ def detect_tables_native(
             try:
 
                 tables = (
-                    page.extract_tables()
+                    page.find_tables()
                 )
 
             except Exception:
 
                 tables = []
 
-            for table_idx, raw_table in enumerate(
-                tables
-            ):
+            for table_idx, native_table in enumerate(tables):
+                raw_table = extract_native_table(native_table, page.chars)
 
                 if not raw_table:
                     continue
@@ -1959,11 +1908,7 @@ def detect_tables_by_title(
                     page_idx
                 ]
 
-                words = page.extract_words(
-                    x_tolerance=2,
-                    y_tolerance=3,
-                    keep_blank_chars=False
-                )
+                words = extract_pdf_words(page)
 
                 words = clean_pdf_words(
                     words
@@ -2599,6 +2544,14 @@ def merge_table_detection_results(
                     else item_body
                 )
 
+            existing["preview_text"] = "\n".join(
+                part for part in (existing.get("title_text", ""),
+                                  existing.get("body_text", "")) if part
+            )
+            if existing.get("raw_table") and item.get("raw_table"):
+                if len(existing["raw_table"][0]) == len(item["raw_table"][0]):
+                    existing["raw_table"] = existing["raw_table"] + item["raw_table"]
+
             halaman_lanjutan = (
                 existing.setdefault(
                     "halaman_lanjutan",
@@ -3094,6 +3047,9 @@ def extract_table_text_for_audit(
     yang tidak punya struktur tabel native.
     """
 
+    if item.get("body_text"):
+        return item["body_text"]
+
     raw_table = item.get(
         "raw_table"
     )
@@ -3488,6 +3444,31 @@ def audit_number_format_in_text(
         )
 
 
+def audit_age_range_format(log_errors, halaman, tabel_ke, title, table_text):
+    """Periksa label rentang umur berdasarkan konteks judul/header tabel.
+
+    Audit teks lengkap juga mencakup baris yang tidak tertangkap grid native.
+    Batas 0–150 mencegah tahun/kode empat digit dianggap kelompok umur.
+    """
+    context = str(title) + "\n" + str(table_text)
+    if not re.search(r"\b(?:kelompok\s+umur|age\s+groups?)\b", context,
+                     re.IGNORECASE):
+        return
+    for line_idx, line in enumerate(str(table_text).splitlines(), start=1):
+        match = re.match(r"^\s*(\d{1,3})\s*-\s*(\d{1,3})(?=\s|$)", line)
+        if not match:
+            continue
+        lower, upper = int(match.group(1)), int(match.group(2))
+        if not 0 <= lower < upper <= 150:
+            continue
+        add_audit_warning(
+            log_errors, halaman, tabel_ke, f"Isi Tabel Baris {line_idx}",
+            "Rentang Umur", match.group(0).strip(),
+            "Rentang umur menggunakan en-dash (–), bukan hyphen (-). "
+            f"Gunakan {match.group(1)}–{match.group(2)}.", line.strip()
+        )
+
+
 def audit_unit_format_in_text(
     log_errors,
     halaman,
@@ -3808,6 +3789,10 @@ def audit_detected_tables(
             extract_table_text_for_audit(
                 item
             )
+        )
+
+        audit_age_range_format(
+            log_errors, halaman, tabel_ke, title, table_text
         )
 
         capitalization_issues = (
@@ -4151,24 +4136,8 @@ def generate_excel_detection_report(
 
 with st.sidebar:
 
-    st.markdown(
-        """
-        <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.2rem;">
-            <div style="font-size:1.6rem;">⚙️</div>
-            <div>
-                <p style="margin:0;font-weight:800;font-size:1.05rem;color:#1c2733;">
-                    Pengaturan &amp; Input
-                </p>
-                <p style="margin:0;font-size:0.78rem;color:#8792a2;">
-                    Unggah dokumen untuk memulai
-                </p>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    st.write("")
+    st.markdown("### Dokumen")
+    st.caption("Pilih publikasi yang akan ditelaah.")
 
     uploaded_file = st.file_uploader(
         "Unggah Publikasi PDF",
@@ -4178,7 +4147,7 @@ with st.sidebar:
 
 
     with st.expander(
-        "🛠️ Opsi Lanjutan",
+        "Opsi lanjutan",
         expanded=False
     ):
 
@@ -4192,7 +4161,7 @@ with st.sidebar:
         )
 
         if st.button(
-            "🧹 Bersihkan Cache Deteksi",
+            "Bersihkan cache deteksi",
             use_container_width=True
         ):
 
@@ -4201,26 +4170,7 @@ with st.sidebar:
 
 
     st.divider()
-
-
-    st.markdown(
-        """
-        <div style="
-            background:#ffffff;
-            border:1px solid var(--siteliti-border);
-            border-radius:12px;
-            padding:0.8rem 0.9rem;
-        ">
-            <p style="margin:0;font-size:0.8rem;color:#5c6675;line-height:1.5;">
-                ℹ️ <b>SiTELITI</b> membantu menelaah konsistensi
-                format tabel pada publikasi statistik BPS secara
-                otomatis, mulai dari deteksi tabel hingga
-                pemeriksaan format.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.caption("SiTELITI · Telaah format tabel publikasi statistik BPS")
 
 
 # ============================================================
@@ -4230,8 +4180,8 @@ with st.sidebar:
 st.markdown(
     """
     <div class="siteliti-hero">
-        <h1>📑 SiTELITI</h1>
-        <span class="badge">SISTEM TELAAH FORMAT TABEL PUBLIKASI STATISTIK</span>
+        <h1>SiTELITI</h1>
+        <p>Sistem Telaah Konsistensi Format Tabel Publikasi Statistik</p>
     </div>
     """,
     unsafe_allow_html=True
@@ -4313,7 +4263,7 @@ if uploaded_file is not None:
 
 
             st.download_button(
-                "📥 Unduh Daftar Tabel",
+                "Unduh daftar tabel",
                 data=excel_data,
                 file_name=(
                     "daftar_tabel_siteliti.xlsx"
@@ -4328,7 +4278,7 @@ if uploaded_file is not None:
         if not df_log.empty:
 
             st.download_button(
-                "📥 Unduh Rekap Temuan",
+                "Unduh rekap temuan",
                 data=(
                     io.BytesIO(
                         df_log.to_csv(
@@ -4349,70 +4299,267 @@ if uploaded_file is not None:
     # METRICS
     # ========================================================
 
-    col1, col2, col3 = (
-        st.columns(3)
-    )
-
+    st.caption(f"Dokumen: {uploaded_file.name}")
+    col1, col2, col3 = st.columns(3)
     with col1:
-        render_metric_card(
-            icon="📄",
-            value=total_pages,
-            label="Halaman",
-            color="#1f4e8c",
-            bg="#eaf1fb"
-        )
-
+        render_metric_card(total_pages, "Halaman")
     with col2:
-        render_metric_card(
-            icon="📊",
-            value=total_tables,
-            label="Tabel Terdeteksi",
-            color="#1f4e8c",
-            bg="#eaf1fb"
-        )
-
+        render_metric_card(total_tables, "Tabel terdeteksi")
     with col3:
-
-        if total_temuan > 0:
-            accent_color, accent_bg, icon = (
-                "#c0272d", "#fdecec", "⚠️"
-            )
-        else:
-            accent_color, accent_bg, icon = (
-                "#1f7a4d", "#eaf7ef", "✅"
-            )
-
-        render_metric_card(
-            icon=icon,
-            value=total_temuan,
-            label="Temuan Format",
-            color=accent_color,
-            bg=accent_bg
-        )
-
-
-    st.write("")
-
+        render_metric_card(total_temuan, "Temuan format",
+                           color="#9a6200" if total_temuan else "#1f4e8c")
 
     # ========================================================
     # INFO DAFTAR TABEL
     # ========================================================
 
-    if excluded_pages:
+    # DAFTAR TABEL
+    # ========================================================
 
-        excluded_numbers = ", ".join(
-            str(x + 1)
-            for x in sorted(
-                excluded_pages
+    tab_temuan, tab_preview, tab_daftar = st.tabs(
+        ["Temuan format", "Pratinjau tabel", "Daftar tabel"]
+    )
+
+    with tab_temuan:
+        render_section_title(
+            "Temuan format",
+            "Tinjau peringatan berikut dan bandingkan dengan tabel aslinya."
+        )
+
+
+        if not df_log.empty:
+
+            st.dataframe(
+                style_status_column(df_log, column="Status"),
+                use_container_width=True,
+                hide_index=True
             )
+
+        elif detected_tables:
+
+            st.success(
+                "Tidak ada temuan format pada tabel yang berhasil diekstrak."
+            )
+
+
+        else:
+            st.info("Temuan belum tersedia karena belum ada tabel yang terdeteksi.")
+
+
+    with tab_preview:
+        render_section_title(
+            "Pratinjau tabel",
+            "Pilih salah satu tabel untuk melihat detail dan isi datanya."
         )
 
-        st.info(
-            "Halaman yang dikecualikan karena "
-            "teridentifikasi sebagai Daftar Tabel / "
-            "Daftar Lampiran: "
-            f"**{excluded_numbers}**"
+
+        if detected_tables:
+
+            table_options = [
+
+                (
+                    f"Tabel "
+                    f"{item.get('nomor_tabel', '?')} "
+                    f"— Hal. "
+                    f"{item.get('halaman')}"
+                )
+
+                for item in detected_tables
+
+            ]
+
+
+            selected_idx = st.selectbox(
+                "Pilih tabel:",
+                range(
+                    len(table_options)
+                ),
+                format_func=lambda x:
+                    table_options[x]
+            )
+
+
+            active_table = (
+                detected_tables[
+                    selected_idx
+                ]
+            )
+
+
+            # ----------------------------------------------------
+            # Informasi
+            # ----------------------------------------------------
+
+            st.caption(f"Tabel {active_table.get('nomor_tabel', '-')} · "
+                       f"Halaman {format_halaman_display(active_table)}")
+
+            st.markdown(
+                f"""
+                **Judul Tabel:**  
+                {active_table.get("judul", "-")}
+                """
+            )
+
+
+            with st.expander("Detail deteksi tabel"):
+                st.caption(f"Metode: {active_table.get('sumber_detector', '-')}")
+                st.caption(f"Format judul: {active_table.get('format_judul', '-')}")
+
+            # ----------------------------------------------------
+            # Jika native table → tampilkan DataFrame
+            # ----------------------------------------------------
+
+            if active_table.get(
+                "raw_table"
+            ):
+
+                raw_table = (
+                    active_table[
+                        "raw_table"
+                    ]
+                )
+
+
+                if len(raw_table) >= 2:
+
+                    headers = [
+
+                        str(col).strip()
+                        if col
+                        else f"Kolom_{i+1}"
+
+                        for i, col in enumerate(
+                            raw_table[0]
+                        )
+
+                    ]
+
+
+                    preview_df = pd.DataFrame(
+                        raw_table[1:],
+                        columns=headers
+                    )
+
+
+                    st.dataframe(
+                        preview_df,
+                        use_container_width=True
+                    )
+
+
+            # ----------------------------------------------------
+            # Jika layout detector
+            # ----------------------------------------------------
+
+            if active_table.get(
+                "preview_text"
+            ):
+
+                try:
+
+                    preview_text = active_table.get(
+                        "preview_text",
+                        ""
+                    )
+
+
+                    if preview_text:
+
+                        st.text_area(
+                            "Teks hasil ekstraksi",
+                            preview_text,
+                            height=400
+                        )
+
+                    else:
+
+                        st.warning(
+                            "Area tabel berhasil "
+                            "ditemukan, tetapi teks "
+                            "tidak dapat diekstrak."
+                        )
+
+                except Exception:
+
+                    st.warning(
+                        "Preview tabel tidak dapat "
+                        "ditampilkan."
+                    )
+
+
+        else:
+
+            st.info(
+                "Belum ada tabel untuk ditampilkan."
+            )
+
+
+    with tab_daftar:
+        render_section_title(
+            "Daftar tabel",
+            "Daftar tabel yang ditemukan dalam dokumen."
         )
+
+
+        if detected_tables:
+
+            detection_df = (
+                pd.DataFrame([
+
+                    {
+
+                        "No.": i,
+
+                        "Halaman": (
+                            format_halaman_display(
+                                item
+                            )
+                        ),
+
+                        "Nomor Tabel": item.get(
+                            "nomor_tabel"
+                        ),
+
+                        "Judul Tabel": item.get(
+                            "judul"
+                        ),
+
+                        "Format Judul": item.get(
+                            "format_judul"
+                        ),
+
+                        "Detector": item.get(
+                            "sumber_detector"
+                        ),
+
+                        "Status": item.get(
+                            "status"
+                        )
+
+                    }
+
+                    for i, item in enumerate(
+                        detected_tables,
+                        start=1
+                    )
+
+                ])
+            )
+
+
+            st.dataframe(
+                style_status_column(detection_df, column="Status"),
+                use_container_width=True,
+                hide_index=True
+            )
+
+
+        else:
+
+            st.warning(
+                "Belum ada tabel yang terdeteksi."
+            )
+
 
 
     # ========================================================
@@ -4420,8 +4567,25 @@ if uploaded_file is not None:
     # ========================================================
 
     with st.expander(
-        "🔧 Informasi Deteksi"
+        "Informasi deteksi"
     ):
+
+        if excluded_pages:
+
+            excluded_numbers = ", ".join(
+                str(x + 1)
+                for x in sorted(
+                    excluded_pages
+                )
+            )
+
+            st.info(
+                "Halaman yang dikecualikan karena "
+                "teridentifikasi sebagai Daftar Tabel / "
+                "Daftar Lampiran: "
+                f"**{excluded_numbers}**"
+            )
+
 
         info_col1, info_col2, info_col3 = st.columns(3)
 
@@ -4449,312 +4613,6 @@ if uploaded_file is not None:
         )
 
 
-    # ========================================================
-    # DAFTAR TABEL
-    # ========================================================
-
-    st.divider()
-
-    render_section_title(
-        "📋 Daftar Tabel yang Terdeteksi",
-        "Hasil gabungan dari Native Table Detection dan Title/Layout Detection."
-    )
-
-
-    if detected_tables:
-
-        detection_df = (
-            pd.DataFrame([
-
-                {
-
-                    "No.": i,
-
-                    "Halaman": (
-                        format_halaman_display(
-                            item
-                        )
-                    ),
-
-                    "Nomor Tabel": item.get(
-                        "nomor_tabel"
-                    ),
-
-                    "Judul Tabel": item.get(
-                        "judul"
-                    ),
-
-                    "Format Judul": item.get(
-                        "format_judul"
-                    ),
-
-                    "Detector": item.get(
-                        "sumber_detector"
-                    ),
-
-                    "Status": item.get(
-                        "status"
-                    )
-
-                }
-
-                for i, item in enumerate(
-                    detected_tables,
-                    start=1
-                )
-
-            ])
-        )
-
-
-        st.dataframe(
-            style_status_column(detection_df, column="Status"),
-            use_container_width=True,
-            hide_index=True
-        )
-
-
-    else:
-
-        st.warning(
-            "Belum ada tabel yang terdeteksi."
-        )
-
-
-    # ========================================================
-    # AUDIT FORMAT
-    # ========================================================
-
-    st.divider()
-
-    render_section_title(
-        "📋 Daftar Temuan Format",
-        "Rekap potensi kesalahan format yang ditemukan pada tabel terdeteksi."
-    )
-
-
-    if not df_log.empty:
-
-        n_temuan = len(df_log)
-
-        badge_col1, _ = st.columns([1, 4])
-
-        with badge_col1:
-            st.markdown(
-                f"""
-                <span style="
-                    background:#fef3e2;color:#b5691a;
-                    padding:0.28rem 0.8rem;border-radius:999px;
-                    font-size:0.82rem;font-weight:700;">
-                    🟠 {n_temuan} Peringatan
-                </span>
-                """,
-                unsafe_allow_html=True
-            )
-
-        st.write("")
-
-        st.dataframe(
-            style_status_column(df_log, column="Status"),
-            use_container_width=True,
-            hide_index=True
-        )
-
-    else:
-
-        st.success(
-            "Tidak ada temuan format dari "
-            "tabel yang dapat diekstrak. 🎉"
-        )
-
-
-    # ========================================================
-    # PREVIEW
-    # ========================================================
-
-    st.divider()
-
-    render_section_title(
-        "🔍 Pratinjau Tabel",
-        "Pilih salah satu tabel untuk melihat detail dan isi datanya."
-    )
-
-
-    if detected_tables:
-
-        table_options = [
-
-            (
-                f"Tabel "
-                f"{item.get('nomor_tabel', '?')} "
-                f"— Hal. "
-                f"{item.get('halaman')}"
-            )
-
-            for item in detected_tables
-
-        ]
-
-
-        selected_idx = st.selectbox(
-            "Pilih tabel:",
-            range(
-                len(table_options)
-            ),
-            format_func=lambda x:
-                table_options[x]
-        )
-
-
-        active_table = (
-            detected_tables[
-                selected_idx
-            ]
-        )
-
-
-        # ----------------------------------------------------
-        # Informasi
-        # ----------------------------------------------------
-
-        col_a, col_b, col_c = (
-            st.columns(3)
-        )
-
-
-        with col_a:
-
-            st.metric(
-                "Nomor Tabel",
-                active_table.get(
-                    "nomor_tabel"
-                )
-                or "-"
-            )
-
-
-        with col_b:
-
-            st.metric(
-                "Halaman",
-                active_table.get(
-                    "halaman"
-                )
-            )
-
-
-        with col_c:
-
-            st.metric(
-                "Detector",
-                active_table.get(
-                    "sumber_detector",
-                    "-"
-                )
-            )
-
-
-        st.markdown(
-            f"""
-            **Judul Tabel:**  
-            {active_table.get("judul", "-")}
-            """
-        )
-
-
-        st.caption(
-            "Format judul: "
-            f"`{active_table.get('format_judul', '-')}`"
-        )
-
-
-        # ----------------------------------------------------
-        # Jika native table → tampilkan DataFrame
-        # ----------------------------------------------------
-
-        if active_table.get(
-            "raw_table"
-        ):
-
-            raw_table = (
-                active_table[
-                    "raw_table"
-                ]
-            )
-
-
-            if len(raw_table) >= 2:
-
-                headers = [
-
-                    str(col).strip()
-                    if col
-                    else f"Kolom_{i+1}"
-
-                    for i, col in enumerate(
-                        raw_table[0]
-                    )
-
-                ]
-
-
-                preview_df = pd.DataFrame(
-                    raw_table[1:],
-                    columns=headers
-                )
-
-
-                st.dataframe(
-                    preview_df,
-                    use_container_width=True
-                )
-
-
-        # ----------------------------------------------------
-        # Jika layout detector
-        # ----------------------------------------------------
-
-        elif active_table.get(
-            "preview_text"
-        ):
-
-            try:
-
-                preview_text = active_table.get(
-                    "preview_text",
-                    ""
-                )
-
-
-                if preview_text:
-
-                    st.text_area(
-                        "Teks yang terbaca:",
-                        preview_text,
-                        height=400
-                    )
-
-                else:
-
-                    st.warning(
-                        "Area tabel berhasil "
-                        "ditemukan, tetapi teks "
-                        "tidak dapat diekstrak."
-                    )
-
-            except Exception:
-
-                st.warning(
-                    "Preview tabel tidak dapat "
-                    "ditampilkan."
-                )
-
-
-    else:
-
-        st.info(
-            "Belum ada tabel untuk ditampilkan."
-        )
 
 
 # ============================================================
@@ -4762,73 +4620,16 @@ if uploaded_file is not None:
 # ============================================================
 
 else:
-
-    st.info(
-        "👋 Silakan unggah dokumen publikasi PDF "
-        "di sidebar untuk memulai proses "
-        "penelaahan."
-    )
-
-    st.write("")
-
-    render_section_title("Cara Kerja SiTELITI")
-
+    render_section_title("Mulai telaah publikasi", "Unggah PDF melalui sidebar untuk melihat tabel dan temuan format.")
     step1, step2, step3 = st.columns(3)
-
-    with step1:
-        st.markdown(
-            """
-            <div class="siteliti-step-card">
-                <div class="step-num">1</div>
-                <h4>📑 Deteksi Tabel</h4>
-                <p>SiTELITI menggunakan dua metode pelengkap:</p>
-                <ul>
-                    <li><b>Native Table Detection</b> — untuk PDF yang
-                    struktur tabelnya dapat dibaca langsung oleh PDF
-                    parser.</li>
-                    <li><b>Title/Layout Detection</b> — untuk PDF yang
-                    tabelnya tidak terbaca sebagai objek tabel, tetapi
-                    masih memiliki struktur teks dan posisi/layout.</li>
-                </ul>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    with step2:
-        st.markdown(
-            """
-            <div class="siteliti-step-card">
-                <div class="step-num">2</div>
-                <h4>🔗 Penggabungan Hasil</h4>
-                <p>
-                    Hasil dari kedua metode digabungkan secara otomatis,
-                    dan tabel yang sama tidak dihitung dua kali sehingga
-                    daftar tabel akhir tetap akurat.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    with step3:
-        st.markdown(
-            """
-            <div class="siteliti-step-card">
-                <div class="step-num">3</div>
-                <h4>🔍 Pemeriksaan Format</h4>
-                <p>Setelah tabel ditemukan, sistem memeriksa aturan
-                format seperti:</p>
-                <ul>
-                    <li>nomor kolom</li>
-                    <li>format &amp; pemisah angka (desimal, ribuan)</li>
-                    <li>simbol nol</li>
-                    <li>satuan</li>
-                    <li>dan aturan format lainnya</li>
-                </ul>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    st.write("")
+    for column, number, title, description in (
+        (step1, "01", "Unggah dokumen", "Pilih publikasi statistik dalam format PDF."),
+        (step2, "02", "Tinjau temuan", "Periksa peringatan nomor kolom, angka, rentang, dan satuan."),
+        (step3, "03", "Periksa tabel", "Lihat teks hasil ekstraksi dan unduh rekap untuk tindak lanjut."),
+    ):
+        with column:
+            st.markdown(
+                f'<div class="siteliti-step-card"><div class="step-num">{number}</div>'
+                f'<h4>{title}</h4><p>{description}</p></div>',
+                unsafe_allow_html=True
+            )
