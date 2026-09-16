@@ -29,65 +29,184 @@ CUSTOM_CSS = """
 <style>
 :root {
     --siteliti-primary: #1f4e8c;
-    --siteliti-bg-soft: #f6f8fb;
-    --siteliti-border: #e3e8ef;
+    --siteliti-primary-dark: #173c6b;
+    --siteliti-teal: #147d72;
+    --siteliti-amber: #b36b00;
+    --siteliti-bg-soft: #f5f8fc;
+    --siteliti-border: #dce5ef;
+    --siteliti-text: #203047;
+    --siteliti-muted: #5d6b7c;
 }
+
 /* Sisakan ruang untuk toolbar Streamlit di atas judul aplikasi. */
-.block-container { padding-top: 1.8rem; padding-bottom: 2.5rem; }
 .block-container { padding-top: 4.5rem; padding-bottom: 2.5rem; }
+
+/* Header: berwarna, tetapi tetap ringan dan formal. */
 .siteliti-hero {
-    border-bottom: 1px solid var(--siteliti-border);
-    padding: 0 0 1rem;
+    background: linear-gradient(120deg, #eef5ff 0%, #f2fbf8 100%);
+    border: 1px solid #d8e6f4;
+    border-left: 5px solid var(--siteliti-primary);
+    border-radius: 12px;
+    padding: 1.15rem 1.35rem;
     margin-bottom: 1.2rem;
+    box-shadow: 0 4px 14px rgba(31, 78, 140, .07);
 }
 .siteliti-hero h1 {
-    color: var(--siteliti-primary);
-    font-size: 1.85rem;
-    font-weight: 700;
-    line-height: 1.25;
-    line-height: 1.4;
-    margin: 0 0 .35rem;
-    padding: 0;
-    padding: .15rem 0;
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    color: var(--siteliti-primary-dark);
+    font-size: 1.9rem;
+    font-weight: 750;
+    line-height: 1.35;
+    margin: 0 0 .28rem;
+    padding: .1rem 0;
     height: auto;
     white-space: normal;
     overflow-wrap: anywhere;
 }
-.siteliti-hero p { color: #526174; font-size: .9rem; margin: 0; }
-.siteliti-hero p {
-    color: #526174; font-size: .9rem; margin: 0;
-    line-height: 1.6; white-space: normal; overflow-wrap: anywhere;
+.siteliti-hero .hero-icon {
+    display: inline-block;
+    flex: 0 0 auto;
+    margin-right: .75rem;
+    font-size: 1.45rem;
+    line-height: 1;
 }
+.siteliti-hero p {
+    color: var(--siteliti-muted);
+    font-size: .92rem;
+    line-height: 1.6;
+    margin: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* Ringkasan diberi aksen sesuai kategori. */
 .siteliti-metric {
+    position: relative;
+    overflow: hidden;
+    background: #ffffff;
     border: 1px solid var(--siteliti-border);
-    border-radius: 8px;
-    padding: .85rem 1rem;
+    border-radius: 10px;
+    padding: .9rem 1rem .9rem 1.15rem;
     height: 100%;
+    box-shadow: 0 3px 12px rgba(31, 55, 82, .055);
+}
+.siteliti-metric::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: var(--metric-color, var(--siteliti-primary));
 }
 .siteliti-metric .value {
-    font-size: 1.65rem; font-weight: 700; line-height: 1.2; margin: 0;
+    color: var(--metric-color, var(--siteliti-primary));
+    font-size: 1.7rem;
+    font-weight: 750;
+    line-height: 1.2;
+    margin: 0;
 }
-.siteliti-metric .label { color: #526174; font-size: .85rem; margin: .3rem 0 0; }
+.siteliti-metric .label {
+    color: var(--siteliti-muted);
+    font-size: .85rem;
+    font-weight: 550;
+    margin: .3rem 0 0;
+}
+
 .siteliti-section-title {
-    font-size: 1.1rem; font-weight: 650; margin: 1rem 0 .3rem;
+    color: var(--siteliti-text);
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 1rem 0 .3rem;
 }
-.siteliti-section-sub { color: #526174; font-size: .88rem; margin: 0 0 .8rem; }
-section[data-testid="stSidebar"] { border-right: 1px solid var(--siteliti-border); }
-.stButton button, .stDownloadButton button { border-radius: 6px; }
-button[data-baseweb="tab"] { font-weight: 600; }
-div[data-testid="stDataFrame"] { border-radius: 6px; }
-.siteliti-step-card { padding: .5rem 0; }
+.siteliti-section-sub {
+    color: var(--siteliti-muted);
+    font-size: .88rem;
+    margin: 0 0 .8rem;
+}
+
+/* Sidebar dan kontrol memakai warna merek secara hemat. */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #f5f8fc 0%, #ffffff 48%);
+    border-right: 1px solid var(--siteliti-border);
+}
+section[data-testid="stSidebar"] h3 { color: var(--siteliti-primary-dark); }
+.stButton button, .stDownloadButton button {
+    border-radius: 7px;
+    border-color: #b9cce0;
+}
+.stButton button:hover, .stDownloadButton button:hover {
+    border-color: var(--siteliti-primary);
+    color: var(--siteliti-primary);
+}
+
+/* Tab aktif terlihat jelas tanpa memenuhi layar dengan warna. */
+button[data-baseweb="tab"] {
+    color: var(--siteliti-muted);
+    font-weight: 600;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+button[data-baseweb="tab"][aria-selected="true"] {
+    color: var(--siteliti-primary);
+    background: #edf4fc;
+    border-radius: 8px 8px 0 0;
+}
+div[data-baseweb="tab-highlight"] { background-color: var(--siteliti-primary); }
+
+div[data-testid="stDataFrame"] {
+    border: 1px solid var(--siteliti-border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+div[data-testid="stExpander"] {
+    border-color: var(--siteliti-border);
+    border-radius: 8px;
+}
+
+.siteliti-step-card {
+    box-sizing: border-box;
+    background: #ffffff;
+    border: 1px solid var(--siteliti-border);
+    border-top: 3px solid var(--siteliti-primary);
+    border-radius: 10px;
+    padding: 1rem;
+    height: 100%;
+    min-height: 158px;
+    box-shadow: 0 3px 12px rgba(31, 55, 82, .05);
+}
 .siteliti-step-card .step-num {
-    color: var(--siteliti-primary); font-size: .85rem; font-weight: 700;
-    margin-bottom: .5rem;
+    display: inline-block;
+    color: var(--siteliti-primary);
+    background: #edf4fc;
+    border-radius: 6px;
+    padding: .18rem .45rem;
+    font-size: .82rem;
+    font-weight: 750;
+    margin-bottom: .55rem;
 }
-.siteliti-step-card h4 { font-size: 1rem; margin: 0 0 .4rem; padding: 0; }
-.siteliti-step-card p { color: #526174; font-size: .88rem; line-height: 1.6; margin: 0; }
+.siteliti-step-card h4 {
+    color: var(--siteliti-text);
+    font-size: 1rem;
+    margin: 0 0 .4rem;
+    padding: 0;
+}
+.siteliti-step-card p {
+    color: var(--siteliti-muted);
+    font-size: .88rem;
+    line-height: 1.6;
+    margin: 0;
+}
+
 @media (max-width: 640px) {
-    .block-container { padding-top: 1rem; }
     .block-container { padding-top: 4.5rem; }
+    .siteliti-hero { padding: .95rem 1rem; }
     .siteliti-hero h1 { font-size: 1.6rem; }
-    .siteliti-metric { padding: .65rem .8rem; }
+    .siteliti-hero .hero-icon {
+        font-size: 1.25rem;
+    }
+    .siteliti-metric { padding: .7rem .8rem .7rem 1rem; }
+    .siteliti-step-card { min-height: auto; }
 }
 </style>
 """
@@ -99,8 +218,8 @@ def render_metric_card(value, label, color="#1f4e8c"):
     """Ringkasan sederhana; warna menekankan jumlah temuan."""
     st.markdown(
         f"""
-        <div class="siteliti-metric">
-            <p class="value" style="color:{escape(color)};">{escape(str(value))}</p>
+        <div class="siteliti-metric" style="--metric-color:{escape(color)};">
+            <p class="value">{escape(str(value))}</p>
             <p class="label">{escape(label)}</p>
         </div>
         """,
@@ -4180,7 +4299,7 @@ with st.sidebar:
 st.markdown(
     """
     <div class="siteliti-hero">
-        <h1>SiTELITI</h1>
+        <h1><span class="hero-icon" aria-hidden="true">🔍</span><span>SiTELITI</span></h1>
         <p>Sistem Telaah Konsistensi Format Tabel Publikasi Statistik</p>
     </div>
     """,
@@ -4304,10 +4423,10 @@ if uploaded_file is not None:
     with col1:
         render_metric_card(total_pages, "Halaman")
     with col2:
-        render_metric_card(total_tables, "Tabel terdeteksi")
+        render_metric_card(total_tables, "Tabel terdeteksi", color="#147d72")
     with col3:
         render_metric_card(total_temuan, "Temuan format",
-                           color="#9a6200" if total_temuan else "#1f4e8c")
+                           color="#b36b00" if total_temuan else "#147d72")
 
     # ========================================================
     # INFO DAFTAR TABEL
